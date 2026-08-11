@@ -23,8 +23,9 @@ authoritative feature inventory:
 - Path modes, searches, shortest-path groups, query composition, procedure
   semantics, graph types, and the complete GQL value/type system remain
   incomplete.
-- DuckLake-backed graphs are read-only and currently map one vertex table and
-  one edge table from the same catalog, using integer keys.
+- DuckLake-backed graphs are read-only and map multiple vertex and edge tables
+  from one catalog using graph-wide integer key namespaces. Each node type maps
+  one vertex table; multi-table joins for one node record are not supported.
 - Weighted SSSP is not implemented.
 
 ## DuckDB compatibility

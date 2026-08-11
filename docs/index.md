@@ -24,7 +24,7 @@ features:
   - title: Optional acceleration
     details: Add native property indexes for selective lookups and build a connection-local CSR snapshot for graph algorithms and selective expansion.
   - title: DuckLake analytics
-    details: Map selected DuckLake columns to a typed, read-only graph and choose live data or a pinned snapshot for reproducible analysis.
+    details: Map multiple DuckLake vertex and edge tables to a typed, read-only graph and choose live data or a pinned snapshot for reproducible analysis.
 ---
 
 ::: warning Experimental

@@ -25,30 +25,39 @@ and credentials through DuckLake as usual. DuckGQL reads through the attached
 ## Map tables to a typed graph
 
 Choose the source columns that identify vertices, connect edges, and become
-graph properties:
+graph properties. Repeat `VERTEX TABLE` and `EDGE TABLE` mappings to build a
+heterogeneous graph from several DuckLake tables:
 
 ```sql
 CREATE GRAPH social TYPED {
-    (Person :Person {id INT64 NOT NULL, name STRING, age INT64}),
-    (Person)-[:KNOWS {id INT64 NOT NULL, since INT32}]->(Person)
+    (Customer :Customer {id INT64 NOT NULL, name STRING}),
+    (ProductNode :ProductNode {id INT64 NOT NULL, name STRING, price FLOAT64}),
+    (Customer)-[:BOUGHT {id INT64 NOT NULL, quantity INT32}]->(ProductNode)
 }
 FROM TABLES (
-    VERTEX TABLE lake.main.person
-        MAP TO NODE TYPE Person
-        KEY (person_id)
+    VERTEX TABLE lake.main.customers
+        MAP TO NODE TYPE Customer
+        KEY (customer_id)
         PROPERTIES (
-            person_id AS id,
-            full_name AS name,
-            age_years AS age
+            customer_id AS id,
+            customer_name AS name
         ),
-    EDGE TABLE lake.main.person_knows
-        MAP TO EDGE TYPE KNOWS
-        KEY (relationship_id)
-        SOURCE (src_person_id) REFERENCES NODE TYPE Person
-        DESTINATION (dst_person_id) REFERENCES NODE TYPE Person
+    VERTEX TABLE lake.main.products
+        MAP TO NODE TYPE ProductNode
+        KEY (product_id)
         PROPERTIES (
-            relationship_id AS id,
-            since_year AS since
+            product_id AS id,
+            product_name AS name,
+            price AS price
+        ),
+    EDGE TABLE lake.main.orders
+        MAP TO EDGE TYPE BOUGHT
+        KEY (order_id)
+        SOURCE (customer_id) REFERENCES NODE TYPE Customer
+        DESTINATION (product_id) REFERENCES NODE TYPE ProductNode
+        PROPERTIES (
+            order_id AS id,
+            quantity AS quantity
         )
 )
 OPTIONS (
@@ -58,8 +67,10 @@ OPTIONS (
 );
 ```
 
-Only the mapped columns are visible through GQL. Validation checks vertex and
-edge keys, endpoints, and the mapped schema before registering the graph.
+Only the mapped columns are visible through GQL. Each vertex table maps one
+node type, and every edge endpoint resolves through its declared node type.
+Validation checks table-local keys, endpoint references, the mapped schema,
+and graph-wide uniqueness across vertex keys and across edge keys.
 
 ## Query and analyze
 
@@ -68,8 +79,8 @@ Select the graph and use it like any other DuckGQL graph:
 ```sql
 SESSION SET GRAPH social;
 
-MATCH (a:Person)-[e:KNOWS]->(b:Person)
-RETURN a.name, b.name, e.since;
+MATCH (customer:Customer)-[order:BOUGHT]->(product:ProductNode)
+RETURN customer.name, product.name, order.quantity;
 ```
 
 Graph algorithms read the same DuckLake-backed graph:
@@ -100,7 +111,10 @@ returning different data.
 
 ## Current scope
 
-DuckLake-backed graphs are read-only and currently support one vertex table
-and one edge table from the same DuckLake catalog, using integer keys.
-`DROP GRAPH` removes the DuckGQL mapping but does not delete the DuckLake source
-tables or their data.
+DuckLake-backed graphs are read-only and support multiple vertex and edge
+tables from the same DuckLake catalog, using integer keys. Source keys remain
+the values returned by `element_id`, so they must be unique across all mapped
+vertex tables or all mapped edge tables. Each node type currently maps one
+vertex table; joining several physical tables into one node record is not yet
+supported. `DROP GRAPH` removes the DuckGQL mapping but does not delete the
+DuckLake source tables or their data.
