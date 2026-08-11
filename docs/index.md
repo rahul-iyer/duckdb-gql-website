@@ -23,6 +23,8 @@ features:
     details: Vertices and edges remain typed DuckDB tables. Properties are columns, nodes retain label lists, and every edge has one relationship type.
   - title: Optional acceleration
     details: Add native property indexes for selective lookups and build a connection-local CSR snapshot for graph algorithms and selective expansion.
+  - title: DuckLake analytics
+    details: Map selected DuckLake columns to a typed, read-only graph and choose live data or a pinned snapshot for reproducible analysis.
 ---
 
 ::: warning Experimental

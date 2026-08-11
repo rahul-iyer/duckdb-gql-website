@@ -68,7 +68,8 @@ SELECT * FROM gql_graphs();
 ```
 
 Continue with [graph lifecycle and import](./guides/graph-lifecycle.md), then
-learn how to [query graphs](./guides/querying.md).
+learn how to [query graphs](./guides/querying.md). To query existing lakehouse
+tables in place, see [DuckLake-backed graphs](./guides/ducklake.md).
 
 ::: info Prebuilt artifacts
 GitHub Actions produces platform-specific extension artifacts. DuckDB

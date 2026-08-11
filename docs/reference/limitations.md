@@ -23,8 +23,8 @@ authoritative feature inventory:
 - Path modes, searches, shortest-path groups, query composition, procedure
   semantics, graph types, and the complete GQL value/type system remain
   incomplete.
-- Existing DuckDB or DuckLake tables cannot yet be registered directly as a
-  zero-copy graph.
+- DuckLake-backed graphs are read-only and currently map one vertex table and
+  one edge table from the same catalog, using integer keys.
 - Weighted SSSP is not implemented.
 
 ## DuckDB compatibility

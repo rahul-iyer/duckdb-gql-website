@@ -36,6 +36,10 @@ export default defineConfig({
             text: "Graph lifecycle and import",
             link: "/guides/graph-lifecycle"
           },
+          {
+            text: "DuckLake-backed graphs",
+            link: "/guides/ducklake"
+          },
           { text: "Querying graphs", link: "/guides/querying" },
           {
             text: "Indexes and optimization",
