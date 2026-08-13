@@ -18,6 +18,7 @@ export default defineConfig({
     siteTitle: "DuckGQL Docs",
     nav: [
       { text: "Guide", link: "/getting-started" },
+      { text: "Blog", link: "/blog/ducklake-snb10-zero-copy" },
       { text: "Reference", link: "/reference/gql" },
       { text: "Playground", link: "https://duckgql.com/" }
     ],
@@ -48,6 +49,15 @@ export default defineConfig({
           {
             text: "CSR and algorithms",
             link: "/guides/csr-and-algorithms"
+          }
+        ]
+      },
+      {
+        text: "Blog",
+        items: [
+          {
+            text: "30 million nodes. One DuckLake.",
+            link: "/blog/ducklake-snb10-zero-copy"
           }
         ]
       },

@@ -107,7 +107,6 @@ FROM TABLES (
         ),
     EDGE TABLE lake.main.person_knows
         MAP TO EDGE TYPE KNOWS
-        KEY (relationship_id)
         SOURCE (src_person_id) REFERENCES NODE TYPE Person
         DESTINATION (dst_person_id) REFERENCES NODE TYPE Person
         PROPERTIES (
@@ -127,9 +126,10 @@ Mapping clauses mean:
 | Clause | Contract |
 | --- | --- |
 | `MAP TO NODE TYPE Person` | Every row has the static graph type and labels declared for `Person`. |
-| `KEY (person_id)` | Integer source key becomes the graph element ID. |
+| `KEY (person_id)` | Integer source key identifies a row within this node-type mapping. |
 | `source_column AS property` | Exposes exactly that source column under the declared graph property. |
 | `MAP TO EDGE TYPE KNOWS` | Every row has static relationship type `KNOWS`. |
+| Optional edge `KEY (...)` | Supplies a stable source relationship key; when omitted, DuckGQL generates a snapshot-local edge identity. |
 | `SOURCE (...) REFERENCES NODE TYPE ...` | Source endpoint column resolves against that mapped node type's key. |
 | `DESTINATION (...) REFERENCES NODE TYPE ...` | Destination endpoint column resolves against that mapped node type's key. |
 
@@ -234,9 +234,11 @@ Current mapping rules are:
 - all mapped tables must come from the same attached catalog;
 - each declared node type maps to one physical vertex table;
 - several node types, edge types, and edge tables can participate in one graph;
+- vertex source keys need only be unique within their node-type mapping;
+- edge source keys are optional and need only be unique within their edge-type mapping;
 - an edge's endpoint declarations identify the vertex mappings used to resolve
   its source and destination columns;
-- graph element keys use integer DuckDB types;
+- vertex keys and supplied edge keys use integer DuckDB types;
 - an endpoint column's physical type must exactly match the referenced vertex
   key type.
 
@@ -254,29 +256,38 @@ MATCH (customer:Customer)
 RETURN element_id(customer), customer.id;
 ```
 
-For referenced graphs, `element_id(customer)` is the integer source key. All
-mapped vertex tables therefore share one graph-wide vertex ID namespace. All
-mapped edge tables similarly share one graph-wide edge ID namespace.
-
-With validation enabled, this is rejected even if the colliding IDs belong to
-different node types:
+Source keys are qualified by their mapping. These rows are distinct identities
+even though both source values are `101`:
 
 ```text
 customers.customer_id = 101
 products.product_id   = 101
 ```
 
-Vertex and edge namespaces are separate, so a vertex ID may equal an edge ID.
-Uniqueness across physical tables is essential because algorithms, CSR, path
-state, and returned element IDs operate on the logical union.
+DuckGQL assigns positive, dense IDs over the mapped union for the current
+source snapshot. `element_id(customer)` returns that opaque generated ID, not
+`customer_id`. Map the source key as a property when applications need it:
+
+```sql
+MATCH (customer:Customer)
+RETURN element_id(customer), customer.id;
+```
+
+Generated IDs are snapshot-scoped. They remain deterministic while the mapping
+and source snapshot are unchanged, but applications must not persist them as
+business identifiers across `LIVE` snapshot changes.
+
+An edge mapping may omit `KEY` entirely. DuckGQL then uses the source table's
+row identity only to order rows while generating the snapshot-local edge ID.
+Supplying `KEY` is useful when the source already has a relationship key, but
+that value still needs to be unique only within its physical edge mapping.
 
 ## Registration validation
 
 `VALIDATE TRUE` checks the complete mapping before it is published:
 
-- each physical key is non-null and unique within its table;
-- vertex keys are unique across every mapped vertex table;
-- edge keys are unique across every mapped edge table;
+- vertex keys are unique within their mapped node type;
+- supplied edge keys are unique within their mapped edge type;
 - edge source and destination values are non-null and resolve through the
   declared node-type mapping;
 - endpoint and key physical types match exactly;
@@ -466,8 +477,8 @@ Before registering a production mapping:
 1. Attach the intended DuckLake catalog under its durable alias.
 2. Decide whether freshness (`LIVE`) or reproducibility (`PINNED`) is required.
 3. Ensure all mapped tables belong to that one catalog.
-4. Choose integer keys that are globally unique across vertex mappings and
-   separately across edge mappings.
+4. Choose an integer source key that is unique within each vertex mapping;
+   optionally provide a per-mapping edge key.
 5. Confirm endpoint physical types exactly match their referenced key types.
 6. Map every declared graph property exactly once with an exact native type.
 7. Run `VALIDATE TRUE` at least once on representative production data.
